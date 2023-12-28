@@ -22,8 +22,8 @@ public class UserController {
     private UserService userService;
 
     @PostMapping(value = "/register")
-    public Result<Mono<Void>> register(@RequestBody UserRegisterRequest request) {
-        return Result.success(userService.register(request));
+    public Mono<Result<Void>> register(@RequestBody UserRegisterRequest request) {
+        return userService.register(request).then(Mono.just(Result.success()));
     }
 
 }

@@ -31,15 +31,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Mono<Void> register(UserRegisterRequest request) {
-        Mono<UserEntity> userEntityMono = Mono.just(request)
-                .map(r -> userConverter.convertToUserEntity(request))
-                .doOnNext(r -> r.setPassword(passwordEncoder.encode(r.getPassword())))
-                .flatMap(userRepository::save);
-
         return this.userRepository.getByUsername(request.getUsername())
-                .flatMap(existingUser -> Mono.error(CommonUtils.newServiceException("username already exists.")))
-                .switchIfEmpty(userEntityMono)
-                .then();
+                .flatMap(existingUser -> Mono.<UserEntity>error(CommonUtils.newServiceException("username already exists.")))
+                .switchIfEmpty(Mono.defer(() -> {
+                    UserEntity userEntity = userConverter.convertToUserEntity(request);
+                    userEntity.setPassword(passwordEncoder.encode(userEntity.getPassword()));
+
+                    log.info("Starting to save user: {}", userEntity.getUsername());
+                    return userRepository.save(userEntity);
+                })).then();
     }
 
     @Override
